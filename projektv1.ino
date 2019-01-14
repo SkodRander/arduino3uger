@@ -21,7 +21,7 @@ void loop() {
   
   float temperature = dht.getTemperature();
   float humidity = dht.getHumidity();
-  Serial.println(temperature);
+  Serial.println(temperature);      
   Serial.println(humidity);
   lcd.clear();
   lcd.print("hejsa");
