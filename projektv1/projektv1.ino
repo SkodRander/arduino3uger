@@ -29,7 +29,7 @@ WiFiClient client;
 DHTesp dht;
 LiquidCrystal_I2C lcd(0x27,16,2); 
 
-void setup() {
+void setup() { //initializing all the connections and such...
   dht.setup(0, DHTesp::DHT22);// Connect DHT sensor to GPIO 0 (D3)
   lcd.begin();
   lcd.backlight();
@@ -53,7 +53,7 @@ void setup() {
 void loop() {
   //data_to_lcd();  
 
-  lcd.clear(); 
+  lcd.clear(); // this is all the stuff down in the profile_setup function
   lcd.setCursor(0,0);
   lcd.print("Setup Profile: ");
   delay(5000);
@@ -78,8 +78,8 @@ void loop() {
   delay(5000);
 }
 
-void data_to_lcd(){
-  temperature = dht.getTemperature();
+void data_to_lcd(){ 
+  temperature = dht.getTemperature(); 
   humidity = dht.getHumidity();
   lcd.clear();
   lcd.setCursor(0,0);
@@ -112,14 +112,16 @@ void profile_setup(int id_n){
     lcd.print("prefer?");
     lcd.setCursor(10,1);
     tmpin = analogRead(A0);
-    tmpin = tmpin/65.0+12.0;
+    tmpin = tmpin/65.0+12.0; //last temp setting
     lcd.print(tmpin,1);
     
-    if(digitalRead(btn) == LOW){
-      buttonstate = true;
+    if(digitalRead(btn) == LOW){ //when button is pressed, 
+       buttonstate = true;       // the temp set from the potentiometer
+                                 //is read and set as the desired temp for that profile
     }
     delay(200);
   }
+  //create type of profile with desired profile, id and checked in
   
   
 }
