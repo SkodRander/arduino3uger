@@ -44,7 +44,7 @@ void setup() {
 
 void loop() {
   data_to_lcd();
-  delay(1100);
+  delay(1000);
 }
 
 void data_to_lcd(){
