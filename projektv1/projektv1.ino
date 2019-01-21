@@ -5,7 +5,7 @@
 #include <SPI.h>
 #include <MFRC522.h>
 #define btn D4
-//#include <ThingSpeak.h>
+#include <ThingSpeak.h>
 
 #define SS_PIN 15
 #define RST_PIN 16
@@ -22,19 +22,20 @@ const char* password = "skodrander";
 const int red = 1;
 const int blue = 3;
 
-/*unsigned long channelID = 673873; //your channal
-  const char* myWriteAPIKey = "5SUTO406JKZVF2EN";
-  const char* server = "api.thingspeak.com";
-  const int postingInterval = 20 * 1000; // post data every 20 seconds */
+unsigned long channelID = 673873; //your channal
+const char* myWriteAPIKey = "OBCP812TQD70P7MS";
+const char* server = "api.thingspeak.com";
+const int postingInterval = 20 * 1000; // post data every 20 seconds */
+const int lcdinterval = 5000;
+unsigned long previousMillis = 0; 
+unsigned long previous = 0; 
 
 struct profile {
   byte uid[4];
   float prefer_temp;
   boolean checked_in;
 };
-struct profile profiles[10];
-
-
+struct profile profiles[20];
 
 WiFiClient client;
 DHTesp dht;
@@ -72,8 +73,16 @@ void setup() { //initializing all the connections and such...
 }
 
 void loop() {
+  unsigned long currentMillis = millis();
   read_RFID();
-  data_to_lcd();
+  if(currentMillis - previous >= lcdinterval) {
+    previous = currentMillis;
+    data_to_lcd();
+  }
+  if(currentMillis - previousMillis >= postingInterval){
+    previousMillis = currentMillis;
+    sendToThingspeak(temperature,humidity); 
+  }
   adjust_temp();
 }
 
@@ -88,7 +97,6 @@ void data_to_lcd() {
   lcd.setCursor(0, 1);
   lcd.print("Humidity: ");
   lcd.print(humidity);
-  delay(3000);
 }
 
 void adjust_temp() {
@@ -98,7 +106,6 @@ void adjust_temp() {
     if(profiles[k].checked_in == true) {
       sum += profiles[k].prefer_temp;
       tmp_count++;
-      
     }
   }
   if(tmp_count > 0){
@@ -109,9 +116,9 @@ void adjust_temp() {
  // Serial.print("desire tmp: ");
  // Serial.println(desire_temp);
   float tmp_diff = temperature - desire_temp;
-  lcd.clear();
+  /*lcd.clear();
   lcd.print(tmp_diff);
-  delay(500);
+  delay(500);*/
   if (tmp_diff < -0.2) {
     analogWrite(3,1000);
     analogWrite(1,0);
@@ -125,7 +132,6 @@ void adjust_temp() {
 }
 
 void read_RFID() {
-  lcd.clear();
   if ( ! rfid.PICC_IsNewCardPresent())
     return;
 
@@ -135,6 +141,7 @@ void read_RFID() {
   //Show UID on serial monitor
   //Serial.println();
   //Serial.print(" UID tag :");
+  lcd.clear();
   lcd.print("RFID scanned");
   delay(800);
   //printHex(rfid.uid.uidByte, rfid.uid.size);
@@ -164,10 +171,10 @@ void read_RFID() {
     }
     i++;
   }
+  delay(800);
   /*Serial.println();
   printHex(tmp, 4);
   Serial.println();*/
-  delay(3000);
 }
 
 void profile_setup(byte id_n[], String profilename, int siz) {
@@ -208,6 +215,23 @@ void profile_setup(byte id_n[], String profilename, int siz) {
     }
     delay(200);
   }
+}
+
+void sendToThingspeak(float temp, float humid){
+  int usersAtHome = 0;
+  ThingSpeak.begin(client);
+  client.connect(server,80);
+  ThingSpeak.setField(1,temp); //4 is fourth graph, do same for 1,2,3
+  for(int k = 0; k <= no_of_profiles; k++){
+    if(profiles[k].checked_in == true) {
+      usersAtHome++;
+    }
+  } 
+  ThingSpeak.setField(2, usersAtHome);
+  ThingSpeak.setField(3, humid);
+  ThingSpeak.writeFields(channelID, myWriteAPIKey); //get from Thingspeak
+  client.stop();
+  
 }
 
 void printHex(byte *buffer, byte bufferSize) {
