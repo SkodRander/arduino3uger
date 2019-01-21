@@ -10,6 +10,7 @@
 #define SS_PIN 15
 #define RST_PIN 16
 
+float desire_temp; 
 float temperature;
 float humidity;
 int no_of_profiles = 0;
@@ -18,6 +19,8 @@ boolean buttonstate = false;
 byte tmp[4] = {};
 const char* ssid = "OnePlus6";
 const char* password = "skodrander";
+const int red = 1;
+const int blue = 3;
 
 /*unsigned long channelID = 673873; //your channal
   const char* myWriteAPIKey = "5SUTO406JKZVF2EN";
@@ -26,13 +29,12 @@ const char* password = "skodrander";
 
 struct profile {
   byte uid[4];
-  const int prefer_temp;
+  float prefer_temp;
   boolean checked_in;
 };
-profile hej = {{101, 166, 173, 117}, 25.5, true};
+struct profile profiles[10];
 
 
-profile profiles[1] = {hej};
 
 WiFiClient client;
 DHTesp dht;
@@ -40,9 +42,17 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 MFRC522 rfid(SS_PIN, RST_PIN);
 
 void setup() { //initializing all the connections and such...
+  
+  //profile hej = {{101, 166, 173, 117}, 25.5, true};
+  //profiles[no_of_profiles] = hej;
+
   dht.setup(0, DHTesp::DHT22);// Connect DHT sensor to GPIO 0 (D3)
   SPI.begin();      // Initiate  SPI bus
   rfid.PCD_Init(); // init RFID
+  pinMode(1, OUTPUT);
+  pinMode(3,OUTPUT);
+  digitalWrite(1,LOW);
+  digitalWrite(3,LOW);
   lcd.begin();
   lcd.backlight();
   pinMode(D4, INPUT_PULLUP);
@@ -63,11 +73,14 @@ void setup() { //initializing all the connections and such...
 
 void loop() {
   read_RFID();
+  data_to_lcd();
+  adjust_temp();
 }
 
 void data_to_lcd() {
   temperature = dht.getTemperature();
   humidity = dht.getHumidity();
+  //temperature = analogRead(D3);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Temp: ");
@@ -75,46 +88,89 @@ void data_to_lcd() {
   lcd.setCursor(0, 1);
   lcd.print("Humidity: ");
   lcd.print(humidity);
-  delay(1000);
+  delay(3000);
 }
 
-void check_in_or_out() {
-
+void adjust_temp() {
+  int sum = 0;
+  float tmp_count = 0;
+  for(int k = 0; k <= no_of_profiles; k++){
+    if(profiles[k].checked_in == true) {
+      sum += profiles[k].prefer_temp;
+      tmp_count++;
+      
+    }
+  }
+  if(tmp_count > 0){
+    desire_temp = sum/tmp_count;
+  } else {
+    desire_temp = temperature; 
+  }
+ // Serial.print("desire tmp: ");
+ // Serial.println(desire_temp);
+  float tmp_diff = temperature - desire_temp;
+  lcd.clear();
+  lcd.print(tmp_diff);
+  delay(500);
+  if (tmp_diff < -0.2) {
+    analogWrite(3,1000);
+    analogWrite(1,0);
+  } else if (tmp_diff > 0.2){
+    analogWrite(3,0);
+    analogWrite(1,1000);
+  } else {
+    analogWrite(1,0);
+    analogWrite(3,0);
+  }
 }
 
 void read_RFID() {
   lcd.clear();
-  lcd.print("Scan your tag:");
   if ( ! rfid.PICC_IsNewCardPresent())
     return;
 
   // Verify if the NUID has been readed
   if ( ! rfid.PICC_ReadCardSerial())
     return;
-
   //Show UID on serial monitor
-  Serial.println();
-  Serial.print(" UID tag :");
+  //Serial.println();
+  //Serial.print(" UID tag :");
+  lcd.print("RFID scanned");
+  delay(800);
   //printHex(rfid.uid.uidByte, rfid.uid.size);
-  for (byte i = 0; i < rfid.uid.size; i++) {
-    tmp[i] = rfid.uid.uidByte[i];
+  for (byte j = 0; j < rfid.uid.size; j++) {
+    tmp[j] = rfid.uid.uidByte[j];
   }
   int i = 0;
   while (i <= no_of_profiles) {
-    if (memcmp(profiles[i].uid, tmp, 4) != 0) {
-      Serial.println("new user detected");
+    if (memcmp(profiles[i].uid, tmp, 4) == 0 ) {
+    //  Serial.println();
+    //  Serial.println("old user");
+      lcd.setCursor(0,1);
+      lcd.print("status: ");
+      profiles[i].checked_in = !profiles[i].checked_in;
+      lcd.print(profiles[i].checked_in);
+      delay(1500);
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print(profiles[i].prefer_temp);
+      break;
     } else if(i == no_of_profiles){
-      Serial.println("old user");
+     // Serial.println("new user detected");
+      lcd.setCursor(0,1);
+      lcd.print("new user");
+      profile_setup(tmp, "profile"+String(no_of_profiles,DEC),4);
+      break;
     }
     i++;
   }
+  /*Serial.println();
   printHex(tmp, 4);
-  Serial.println();
-  printHex(hej.uid,4);
+  Serial.println();*/
   delay(3000);
 }
 
-void profile_setup(int id_n) {
+void profile_setup(byte id_n[], String profilename, int siz) {
   no_of_profiles++;
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -129,14 +185,29 @@ void profile_setup(int id_n) {
     tmpin = analogRead(A0);
     tmpin = tmpin / 65.0 + 12.0; //last temp setting
     lcd.print(tmpin, 1);
+    
+    if (digitalRead(btn) == LOW) { //when button is pressed
+      profile profilename = {{},tmpin, true};
+      for(int k = 0; k < siz; k++) {
+        profilename.uid[k] = id_n[k];
+      }
+      profiles[no_of_profiles] = profilename;
+      /*Serial.println();
+      Serial.print("user 1:");
+      printHex(profiles[0].uid,4);
+      Serial.println();
+      Serial.print("user 2:");
+      printHex(profiles[1].uid,4);
+      Serial.println();
+      Serial.print("user 3:");
+      printHex(profiles[2].uid,4);*/
+      break;
+      // the temp set from the potentiometer
 
-    if (digitalRead(btn) == LOW) { //when button is pressed,
-      buttonstate = true;       // the temp set from the potentiometer
       //is read and set as the desired temp for that profile
     }
     delay(200);
   }
-  //create type of profile with desired profile, id and checked in
 }
 
 void printHex(byte *buffer, byte bufferSize) {
