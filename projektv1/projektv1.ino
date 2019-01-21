@@ -119,12 +119,12 @@ void adjust_temp() {
   /*lcd.clear();
   lcd.print(tmp_diff);
   delay(500);*/
-  if (tmp_diff < -0.2) {
-    analogWrite(3,1000);
+  if (tmp_diff < -0.5) {
+    analogWrite(3,-tmp_diff*250);
     analogWrite(1,0);
-  } else if (tmp_diff > 0.2){
+  } else if (tmp_diff > 0.5){
     analogWrite(3,0);
-    analogWrite(1,1000);
+    analogWrite(1,tmp_diff*250);
   } else {
     analogWrite(1,0);
     analogWrite(3,0);
@@ -160,7 +160,7 @@ void read_RFID() {
       delay(1500);
       lcd.clear();
       lcd.setCursor(0,0);
-      lcd.print(profiles[i].prefer_temp);
+      //lcd.print(profiles[i].prefer_temp);
       break;
     } else if(i == no_of_profiles){
      // Serial.println("new user detected");
