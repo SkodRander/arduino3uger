@@ -25,7 +25,7 @@ unsigned long channelID = 673873;                 // thingspeak channel ID
 const char* myWriteAPIKey = "OBCP812TQD70P7MS";   // thingspeak API write key
 const char* myreadkey = "7HPNF1W4LZPV7BVU";
 const char* server = "api.thingspeak.com";        // server url
-const int postingInterval = 20000;                 // post data every 20 seconds 
+const int postingInterval = 20*1000;              // post data every 20 seconds 
 const int lcdinterval = 5000;                     // lcd update interval
 unsigned long previousMillis = 0;                 // value to ensure interval is not being violated
 unsigned long previous = 0;                       // ^^^
@@ -92,7 +92,7 @@ void data_to_lcd() {                              // function to get the temp an
   lcd.print(" / ");
   lcd.print(outsideTemp,1);
   lcd.setCursor(0, 1);
-  lcd.print("Humidity  ");
+  lcd.print("Humidity    ");
   lcd.print(humidity,1);
   
 }
@@ -197,8 +197,7 @@ void sendToThingspeak(float temp, float humid){   // send data to thingspeak ser
   } 
   ThingSpeak.setField(2, usersAtHome);
   ThingSpeak.setField(3, humid);                  // take lates humidity
-  ThingSpeak.writeFields(channelID, myWriteAPIKey); //post temp, humidity and users at hometo thingspeak
-  
-  outsideTemp = ThingSpeak.readFloatField(channelID, 4);
+  outsideTemp = ThingSpeak.readFloatField(channelID, 4, myreadkey);
+  ThingSpeak.writeFields(channelID, myWriteAPIKey); //post temp, humidity and users at home to thingspeak
   client.stop(); 
 }
