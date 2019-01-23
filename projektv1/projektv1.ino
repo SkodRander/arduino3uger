@@ -19,11 +19,11 @@ float tmpin;                                      // used to read a value from p
 boolean buttonstate = false;
 byte tmp[4] = {};                                 // array used to temporarily store UIDs for new 
                                                   // users before creation
-const char* ssid = "OnePlus6";                    // ssid name
-const char* password = "skodrander";              // ssid password
-unsigned long channelID = 673873;                 // thingspeak channel ID
-const char* myWriteAPIKey = "OBCP812TQD70P7MS";   // thingspeak API write key
-const char* myreadkey = "7HPNF1W4LZPV7BVU";
+const char* ssid = "WIFINAME";                    // ssid name
+const char* password = "PASSWORD";                // ssid password
+unsigned long channelID = 123456;                 // thingspeak channel ID
+const char* myWriteAPIKey = "YOUR_WRITE_KEY";     // thingspeak API write key
+const char* myreadkey = "YOUR_READ_KEY";
 const char* server = "api.thingspeak.com";        // server url
 const int postingInterval = 20*1000;              // post data every 20 seconds 
 const int lcdinterval = 5000;                     // lcd update interval
